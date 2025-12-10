@@ -11,7 +11,7 @@ import replicate
 REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
 
 # ---------------------------------------------------------
-# 1) FACE DETECTION + CROP (keep the same)
+# 1) FACE DETECTION (keep the same)
 # ---------------------------------------------------------
 def detect_and_crop_face(input_path: str, out_path: str):
     img = cv2.imread(input_path)
@@ -52,7 +52,7 @@ def detect_and_crop_face(input_path: str, out_path: str):
 # ---------------------------------------------------------
 # 2) STYLIZATION — FREE MODEL: flux-kontext-pro
 # ---------------------------------------------------------
-def stylize_with_replicate(input_face_path: str, out_path: str, style_reference: str = None):
+def stylize_with_replicate(input_face_path: str, out_path: str, style_reference: str = None, user_prompt: str = None):
     """
     FREE-QUOTA MODEL: black-forest-labs/flux-kontext-pro
     This model supports image editing and works well enough for assignment testing.
@@ -67,10 +67,11 @@ def stylize_with_replicate(input_face_path: str, out_path: str, style_reference:
     with open(input_face_path, "rb") as f:
         img_bytes = f.read()
 
-    # children-book style prompt
-    prompt = (
-        "A Disney-style children’s book illustration portrait of the child. Soft shading, large expressive eyes, pastel palette."
+    # default children-book style prompt (can be overridden by user_prompt)
+    default_prompt = (
+        "A Disney-style children’s book illustration portrait. Soft shading, large expressive eyes, pastel palette."
     )
+    prompt = user_prompt or default_prompt
 
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
@@ -87,10 +88,24 @@ def stylize_with_replicate(input_face_path: str, out_path: str, style_reference:
     try:
         output = client.run(MODEL, input=inputs)
     except Exception as exc:
-        # include full traceback for easier debugging
+        # include full traceback for developer debugging, but surface a friendly message to the user
         import traceback
         tb = traceback.format_exc()
-        raise RuntimeError(f"Replicate call failed: {exc}\n{tb}")
+        # write debug dump next to the expected out_path so dev can inspect
+        debug_path = out_path + ".replicate-debug.txt"
+        try:
+            with open(debug_path, "w", encoding="utf-8") as df:
+                df.write("REPLICATE ERROR TRACEBACK:\n")
+                df.write(tb)
+        except Exception:
+            pass
+
+        # Detect timeout-like errors and provide an actionable message
+        msg = str(exc)
+        if "WriteTimeout" in msg or "read timeout" in msg.lower() or "timed out" in msg.lower():
+            raise RuntimeError("Stylization request timed out. The model or network may be slow — try again, reduce the image size, or try a different prompt.")
+        else:
+            raise RuntimeError("Stylization request failed. See server logs for details.")
 
     if not output:
         raise RuntimeError("Replicate returned no output.")
@@ -145,8 +160,20 @@ def stylize_with_replicate(input_face_path: str, out_path: str, style_reference:
                 df.write(repr(output))
         raise RuntimeError(f"Could not extract a downloadable URL from Replicate output. Debug written to {debug_path}")
 
-    r = requests.get(out_url)
-    r.raise_for_status()
+    try:
+        r = requests.get(out_url, timeout=30)
+        r.raise_for_status()
+    except Exception as exc:
+        # save debug info and raise a friendly error
+        debug_path = out_path + ".replicate-debug.txt"
+        try:
+            with open(debug_path, "a", encoding="utf-8") as df:
+                df.write("\nDOWNLOAD ERROR:\n")
+                import traceback
+                df.write(traceback.format_exc())
+        except Exception:
+            pass
+        raise RuntimeError("Failed to download stylized image. Network error or invalid response from the model service.")
 
     with open(out_path, "wb") as f:
         f.write(r.content)

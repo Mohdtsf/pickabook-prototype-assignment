@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from uuid import uuid4
@@ -40,17 +40,29 @@ if not os.path.exists(template_png) and os.path.exists(template_png_dup):
         print(f"Failed to copy template file: {e}")
 
 @app.post('/upload')
-async def upload(photo: UploadFile = File(...)):
+async def upload(photo: UploadFile = File(...), template: UploadFile = File(None), prompt: str = Form(None)):
     task_id = str(uuid4())
     task_dir = os.path.join(BASE_TASKS, task_id)
     os.makedirs(task_dir, exist_ok=True)
     input_path = os.path.join(task_dir, 'input.jpg')
     with open(input_path, 'wb') as f:
         shutil.copyfileobj(photo.file, f)
+
+    # optional template uploaded by user
+    template_path = None
+    if template is not None:
+        template_path = os.path.join(task_dir, 'template.png')
+        with open(template_path, 'wb') as tf:
+            shutil.copyfileobj(template.file, tf)
+
+    # Require that the user provides either a template file or a prompt
+    if template_path is None and (prompt is None or str(prompt).strip() == ""):
+        return JSONResponse({'error': 'Please provide either a template image or a custom prompt.'}, status_code=400)
     meta = {'status': 'queued'}
     with open(os.path.join(task_dir, 'meta.json'), 'w') as f:
         json.dump(meta, f)
-    start_pipeline_async(task_id, input_path)
+    # start pipeline with optional template and prompt
+    start_pipeline_async(task_id, input_path, template_path, prompt)
     return {'task_id': task_id}
 
 @app.get('/status/{task_id}')

@@ -5,10 +5,13 @@ import { BACKEND } from "../lib/config";
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [userPrompt, setUserPrompt] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -17,6 +20,11 @@ export default function UploadForm() {
     setErrorMsg(null);
     setFile(f);
     if (f) setPreview(URL.createObjectURL(f));
+    // clear any previously selected per-task template when choosing a new main photo
+    setTemplateFile(null);
+    setTemplatePreview(null);
+    // also clear any previously entered prompt when switching photos
+    setUserPrompt(null);
   }, []);
 
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -26,15 +34,41 @@ export default function UploadForm() {
     if (f && f.type.startsWith("image/")) {
       setFile(f);
       setPreview(URL.createObjectURL(f));
+      // clear any previously selected per-task template when choosing a new main photo
+      setTemplateFile(null);
+      setTemplatePreview(null);
+      // also clear any previously entered prompt when switching photos
+      setUserPrompt(null);
     } else {
       setErrorMsg("Please drop a valid image file.");
     }
   }, []);
 
+  const onTemplateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0] ?? null;
+      setTemplateFile(f);
+      if (f) setTemplatePreview(URL.createObjectURL(f));
+    },
+    []
+  );
+
+  const canPersonalize = Boolean(
+    file && (templateFile || (userPrompt && userPrompt.trim() !== ""))
+  );
+
   async function upload() {
     if (!file) return setErrorMsg("Please choose a photo to personalize.");
+    if (!templateFile && (!userPrompt || userPrompt.trim() === "")) {
+      setErrorMsg(
+        "Please provide either a template image or a custom prompt before personalizing."
+      );
+      return;
+    }
     const fd = new FormData();
     fd.append("photo", file);
+    if (templateFile) fd.append("template", templateFile);
+    if (userPrompt) fd.append("prompt", userPrompt);
     setStatus("uploading");
     setErrorMsg(null);
     try {
@@ -190,7 +224,12 @@ export default function UploadForm() {
             <div className="flex gap-3">
               <button
                 onClick={upload}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:shadow-lg"
+                disabled={!canPersonalize}
+                className={`px-4 py-2 rounded-lg shadow ${
+                  canPersonalize
+                    ? "bg-indigo-600 text-white hover:shadow-lg"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
               >
                 Personalize
               </button>
@@ -200,11 +239,46 @@ export default function UploadForm() {
                   setPreview(null);
                   setResultUrl(null);
                   setStatus(null);
+                  setTemplateFile(null);
+                  setTemplatePreview(null);
+                  setUserPrompt(null);
+                  setErrorMsg(null);
                 }}
                 className="px-4 py-2 border rounded-lg"
               >
                 Reset
               </button>
+            </div>
+            <div className="mt-3">
+              <label className="text-sm text-gray-600">
+                Optional template image
+              </label>
+              <div className="mt-1 flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onTemplateChange}
+                />
+                {templatePreview && (
+                  <div className="w-20 h-12 overflow-hidden rounded border">
+                    <img
+                      src={templatePreview}
+                      className="w-full h-full object-cover"
+                      alt="template preview"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <label className="mt-3 block text-sm text-gray-600">
+                Prompt (optional)
+              </label>
+              <textarea
+                value={userPrompt ?? ""}
+                onChange={(e) => setUserPrompt(e.target.value)}
+                placeholder="E.g. Soft pastel children\'s-book style, warm tones"
+                className="mt-1 w-full rounded border p-2 text-sm"
+              />
             </div>
             <div className="mt-3 text-sm text-gray-500">
               Selected file: <span className="font-medium">{file?.name}</span>
