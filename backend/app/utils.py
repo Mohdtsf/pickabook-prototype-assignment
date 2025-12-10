@@ -69,9 +69,7 @@ def stylize_with_replicate(input_face_path: str, out_path: str, style_reference:
 
     # children-book style prompt
     prompt = (
-        "Transform this child's face into a soft children's-book illustration style. "
-        "Pastel colors, clean outlines, gentle shading, warm expression, stylized but "
-        "identity-preserving illustration."
+        "A Disney-style children’s book illustration portrait of the child. Soft shading, large expressive eyes, pastel palette."
     )
 
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)

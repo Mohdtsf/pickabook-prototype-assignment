@@ -126,54 +126,56 @@ export default function UploadForm() {
         </div>
       </div>
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        className={`border-2 ${
-          dragOver
-            ? "border-indigo-400 bg-indigo-50/40"
-            : "border-dashed border-gray-200"
-        } rounded-lg p-6 flex flex-col items-center justify-center text-center transition`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          onChange={onFileChange}
-          className="hidden"
-        />
-        <div className="max-w-md">
-          <svg
-            className="mx-auto h-12 w-12 text-indigo-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M7 16l5-5 5 5M12 11v10"
-            />
-          </svg>
-          <p className="mt-2 text-sm text-gray-600">
-            Drag & drop an image here, or{" "}
-            <button
-              onClick={() => inputRef.current?.click()}
-              className="text-indigo-600 font-medium"
+      {!preview && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className={`border-2 ${
+            dragOver
+              ? "border-indigo-400 bg-indigo-50/40"
+              : "border-dashed border-gray-200"
+          } rounded-lg p-6 flex flex-col items-center justify-center text-center transition`}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            onChange={onFileChange}
+            className="hidden"
+          />
+          <div className="max-w-md">
+            <svg
+              className="mx-auto h-12 w-12 text-indigo-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              browse
-            </button>
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            We recommend a clear frontal face photo for best results.
-          </p>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M7 16l5-5 5 5M12 11v10"
+              />
+            </svg>
+            <p className="mt-2 text-sm text-gray-600">
+              Drag & drop an image here, or{" "}
+              <button
+                onClick={() => inputRef.current?.click()}
+                className="text-indigo-600 font-medium"
+              >
+                browse
+              </button>
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              We recommend a clear frontal face photo for best results.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {preview && (
         <div className="flex items-start gap-4">

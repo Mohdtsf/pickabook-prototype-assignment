@@ -1,5 +1,5 @@
 import os, json, threading
-from .utils import detect_and_crop_face, stylize_with_replicate, insert_face_into_template
+from .utils import stylize_with_replicate, insert_face_into_template
 
 BASE_TASKS = './tasks'
 TEMPLATE_PATH = './templates/template.png'  # expected template path
@@ -13,12 +13,10 @@ def pipeline(task_id, input_path):
 
     write_meta({'status': 'processing'})
     try:
-        face_path = os.path.join(task_dir, 'face.png')
-        detect_and_crop_face(input_path, face_path)
-
+        # For this variant, stylize the whole uploaded image (don't crop to the face)
         stylized_path = os.path.join(task_dir, 'stylized.png')
-        # stylize using replicate
-        stylize_with_replicate(face_path, stylized_path, style_reference=TEMPLATE_PATH)
+        # stylize using replicate on the entire input image
+        stylize_with_replicate(input_path, stylized_path, style_reference=TEMPLATE_PATH)
 
         # Try to auto-insert into template if template exists. If not, return stylized image.
         final_path = os.path.join(task_dir, 'final.png')
