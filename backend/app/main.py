@@ -17,10 +17,18 @@ except Exception:
 from .ai_pipeline import start_pipeline_async
 
 app = FastAPI()
-# Enable CORS for local development (frontend on http://localhost:3000)
+# Configure CORS origins via environment for deployed frontend(s).
+# Accepts a comma-separated list in ALLOW_ORIGINS or FRONTEND_URLS.
+allowed = os.getenv('ALLOW_ORIGINS') or os.getenv('FRONTEND_URLS')
+if allowed:
+    origins = [o.strip() for o in allowed.split(',') if o.strip()]
+else:
+    # default: local development
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
