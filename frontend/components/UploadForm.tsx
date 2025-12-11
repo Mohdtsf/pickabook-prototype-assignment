@@ -250,9 +250,13 @@ export default function UploadForm() {
               </button>
             </div>
             <div className="mt-3">
-              <label className="text-sm text-gray-600">
-                Optional template image
+              <label className="text-md text-gray-600">
+                You can personalize your image by either using template image or
+                custom prompt or both.
               </label>
+            </div>
+            <div className="mt-3">
+              <label className="text-sm text-gray-600">Template image</label>
               <div className="mt-1 flex items-center gap-3">
                 <input
                   type="file"
@@ -270,9 +274,7 @@ export default function UploadForm() {
                 )}
               </div>
 
-              <label className="mt-3 block text-sm text-gray-600">
-                Prompt (optional)
-              </label>
+              <label className="mt-3 block text-sm text-gray-600">Prompt</label>
               <textarea
                 value={userPrompt ?? ""}
                 onChange={(e) => setUserPrompt(e.target.value)}
